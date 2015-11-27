@@ -17,36 +17,58 @@
             :password "persius"}))
 
 (defn create-chord-progressions
-  [codes]
-  (let 
+  [chords]
+  (let
     [query-map (-> (helpers/insert-into :chord_progressions)
                    (helpers/columns :chord_progression)
-                   (helpers/values (map list codes))
+                   (helpers/values (map list chords))
                    sql/format)]
     ;(println query-map)
-    (try 
+    (try
       (jdbc/query db query-map)
       (catch Exception e
         (prn "caught" (.getMessage e))))))
 
 (defn read-chord-progressions
   []
-  (let  
+  (let
     [query-map (-> (sql/build :select :*
-                              :from :chord_progressions)
-                   sql/format)]
-    (println query-map)
-    (jdbc/query db query-map)))
+                              :from :chord_progressions ); :limit :33)
+                   sql/format)
+     read-chords (jdbc/query db query-map)]
+    read-chords))
+
+(defn print-chords
+  [response-chords]
+  (doseq
+      [item response-chords]
+      (println (:chord_id item) " " (:chord_progression item))))
+
+(defn update-chords
+  [chords]
+  (let [a 1
+        bad-chord-rows (filter #(re-matches #"^\d+$"  (:chord_progression %)) chords)
+        bad-chords (reduce #(conj %1 (:chord_progression %2)) '() bad-chord-rows)
+        query-map (-> (helpers/update :chord_progressions)
+                      (helpers/sset {:chord_progression "ffff"})
+                      (helpers/where [:in :chord_progression bad-chords])
+                      (sql/format))
+        _ (println query-map)]
+    (try
+      (jdbc/query db query-map)
+      (catch Exception e
+        (prn "caught" (.getMessage e))))))
 
 (defn -main
   "I don't do a whole lot ... yet."
   [& args]
   (let [a 1
-        codes (take 16r99 (repeatedly #(format "%x" (+ (rand-int 16refff) 16r1000))))]
-  (println "create the entries")
-  (create-chord-progressions codes)
-  (println "read the entries")
-  (read-chord-progressions)
+        chords (take 16r99 (repeatedly #(format "%x" (+ (rand-int 16refff) 16r1000))))
+        _ (println "create the entries")
+        _ (create-chord-progressions chords)
+        _ (println "read the entries")
+        read-chords (read-chord-progressions)
+        _ (print-chords read-chords)]
   (println "update the entries")
-  (println "delete the entries")
-  (println codes)))
+    (update-chords read-chords)
+  (println "delete the entries")))
