@@ -1,6 +1,6 @@
 # persius
 
-FIXME: description
+just a database testing program
 
 ## Installation
 
